@@ -48,5 +48,5 @@ int aoi_set_obj(World* w, int id, int x, int y);
 
 void aoi_update_aoi(World* w, void* lua_state);
 
-void aoi_get_cost_time(double* c1, double* c2, double* c3);
+void aoi_get_cost_time(void* lua_state);
 #endif

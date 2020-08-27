@@ -500,11 +500,11 @@ World* aoi_create_world(int row, int col){
     return w;
 }
 
-void aoi_get_cost_time(double* c1, double* c2, double* c3){
-    // printf("aoi_get_cost_time\n");
-    *c1 = cost_time_in_get_event;
-    *c2 = cost_time_in_lua;
-    *c3 = cost_time_in_cal;
+void aoi_get_cost_time(void* l){
+    lua_State* L = (lua_State*)l;
+    lua_pushnumber(L, cost_time_in_get_event);
+    lua_pushnumber(L, cost_time_in_lua);
+    lua_pushnumber(L, cost_time_in_cal);
     cost_time_in_get_event = 0.0;
     cost_time_in_lua = 0.0;
     cost_time_in_cal = 0.0;

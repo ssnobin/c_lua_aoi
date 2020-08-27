@@ -113,16 +113,7 @@ static int update_aoi(lua_State* L){
 }
 
 static int get_time_cost(lua_State* L){
-    double* cost_time_in_get_event = (double*)malloc(sizeof(double));
-    double* cost_time_in_lua = (double*)malloc(sizeof(double));
-    double* cost_time_in_cal = (double*)malloc(sizeof(double));
-    aoi_get_cost_time(cost_time_in_get_event, cost_time_in_lua, cost_time_in_cal);
-    lua_pushnumber(L, *cost_time_in_get_event);
-    lua_pushnumber(L, *cost_time_in_lua);
-    lua_pushnumber(L, *cost_time_in_cal);
-    free(cost_time_in_get_event);
-    free(cost_time_in_lua);
-    free(cost_time_in_cal);
+    aoi_get_cost_time(L);
     return 3;
 }
 
