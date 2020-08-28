@@ -9,16 +9,15 @@
 #include "utils.h"
 #include "aoi.h"
 
+#define GET_INTEGER(L, index, isnum) (int)lua_tointegerx(L, index, &isnum);\
+                                            if(!isnum){\
+                                                return luaL_argerror(L,1,"not number");\
+                                            }
+
 static int create_world(lua_State* L){
     int isnum;
-    int row = (int)lua_tointegerx(L, 1, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"row not number");
-    }
-    int col = (int)lua_tointegerx(L, 2, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"row not number");
-    }
+    int row = GET_INTEGER(L,1,isnum);
+    int col = GET_INTEGER(L,2,isnum);
     World* w = aoi_create_world(row, col);
     if(w==NULL){
         return luaL_error(L, "create world fail");
@@ -33,26 +32,11 @@ static int add_obj(lua_State* L){
         return luaL_argerror(L,1,"no world");
     }
     int isnum;
-    int id = (int)lua_tointegerx(L, 2, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
-    int x = (int)lua_tointegerx(L, 3, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
-    int y = (int)lua_tointegerx(L, 4, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
-    int is_maker = (int)lua_tointegerx(L, 5, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
-    int is_watcher = (int)lua_tointegerx(L, 6, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
+    int id = GET_INTEGER(L,2,isnum);
+    int x = GET_INTEGER(L,3,isnum);
+    int y = GET_INTEGER(L,4,isnum);
+    int is_maker = GET_INTEGER(L,5,isnum);
+    int is_watcher = GET_INTEGER(L,6,isnum);
     if(aoi_add_obj(w, id, x, y, is_maker, is_watcher)){
         return luaL_error(L, "add obj fail");
     }
@@ -65,10 +49,7 @@ static int del_obj(lua_State* L){
         return luaL_argerror(L,1,"no world");
     }
     int isnum;
-    int id = (int)lua_tointegerx(L, 2, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
+    int id = GET_INTEGER(L,2,isnum);
     if(aoi_del_obj(w,id)){
         return luaL_error(L, "del obj fail");
     }
@@ -81,18 +62,9 @@ static int set_obj(lua_State* L){
         return luaL_argerror(L,1,"no world");
     }
     int isnum;
-    int id = (int)lua_tointegerx(L, 2, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
-    int x = (int)lua_tointegerx(L, 3, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
-    int y = (int)lua_tointegerx(L, 4, &isnum);
-    if(!isnum){
-        return luaL_argerror(L,1,"id not number");
-    }
+    int id = GET_INTEGER(L,2,isnum);
+    int x = GET_INTEGER(L,3,isnum);
+    int y = GET_INTEGER(L,4,isnum);
     if (aoi_set_obj(w,id,x,y)){
         return luaL_error(L, "set obj fail");
     }
@@ -193,6 +165,40 @@ static int test_lua_table(lua_State* L) {
     return 1;
 }
 
+static int test_create(lua_State* L) {
+    World* w = (World*)lua_touserdata(L, 1);
+    if(w==NULL){
+        return luaL_argerror(L,1,"no world");
+    }
+    lua_newtable(L);
+    lua_setuservalue(L,1);
+    return 1;
+}
+
+static int test_set(lua_State* L) {
+    World* w = (World*)lua_touserdata(L, 1);
+    if(w==NULL){
+        return luaL_argerror(L,1,"no world");
+    }
+    int key = (int)lua_tointeger(L, 2);
+    int value = (int)lua_tointeger(L, 3);
+    int type = lua_getuservalue(L,1);
+    lua_pushinteger(L,value);
+    lua_rawseti(L,-2,key);
+    return 0;
+}
+
+static int test_get(lua_State* L) {
+    World* w = (World*)lua_touserdata(L, 1);
+    if(w==NULL){
+        return luaL_argerror(L,1,"no world");
+    }
+    int key = (int)lua_tointeger(L, 2);
+    int type = lua_getuservalue(L,1);
+    lua_rawgeti(L,-1,key);
+    return 1;
+}
+
 int luaopen_laoi(lua_State* L){
     luaL_Reg l[] = {
         {"create_world", create_world},
@@ -202,6 +208,9 @@ int luaopen_laoi(lua_State* L){
         {"update_aoi", update_aoi},
         {"get_time_cost", get_time_cost},
         {"test_lua_table", test_lua_table},
+        {"test_create", test_create},
+        {"test_set", test_set},
+        {"test_get", test_get},
         {NULL, NULL},
     };
 

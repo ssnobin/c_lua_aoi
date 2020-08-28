@@ -81,7 +81,7 @@ local function my_aoi_test()
     my_aoi.set_obj(world,2,3,1)
     print_aoi_events(my_aoi.update_aoi(world))
 end
-my_aoi_test()
+--my_aoi_test()
 -- test()
 -- m1_test()
 -- my_test()
@@ -115,13 +115,48 @@ local function test_my_aoi(times,n)
             --print("set end")
             if i%1000 == 0 or i ==n then
                 my_aoi.update_aoi(world) --??为啥这个次数多了就比lua版的满了。。。只有一次就比lua的快
+                print("analyze", my_aoi.get_time_cost())
             end
         end
     end
     --my_aoi.update_aoi(world)
     local e3 = os.clock()
     print("test_my_aoi cost:", e3 - b)
-    --print("analyze", my_aoi.get_time_cost())
+    print("analyze", my_aoi.get_time_cost())
 end
 
-test_my_aoi(1,10000)
+--test_my_aoi(1,10000)
+
+function test()
+    local my_aoi = require "laoi"
+    local world = my_aoi.create_world(9, 9)
+    --print(type(world))
+    --print(world)
+    local ret = my_aoi.test_create(world)
+    --print(type(ret))
+    --print(ret)
+
+    my_aoi.test_set(world,3,2)
+    local value = my_aoi.test_get(world,3)
+    print(value)
+
+    my_aoi.test_set(world,4,9)
+    local value = my_aoi.test_get(world,4)
+    print(value)
+
+    --my_aoi.test_set(world,3,2)
+    local value = my_aoi.test_get(world,3)
+    print(value)
+
+    print("set new uservalue")
+    my_aoi.test_create(world)
+    local value = my_aoi.test_get(world,3)
+    print(value)
+
+    local other_world = my_aoi.create_world(9, 9)
+    local ret = my_aoi.test_create(other_world)
+    local value = my_aoi.test_get(other_world,3)
+    print(value)
+end
+
+test()
