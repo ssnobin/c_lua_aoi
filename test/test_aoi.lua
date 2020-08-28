@@ -120,27 +120,34 @@ end
 --my_test2()
 local function bench_test_my_lua_aoi(times, n)
     local my_aoi = require "aoi"
+    local b = os.clock()
     local aoi_obj = my_aoi.aoi_new(9,9)
     for i=1,n do
         local x = math.random(1,9)
         local y = math.random(1,9)
-        aoi_obj:aoi_add(i,1,1,true,true)
+        aoi_obj:aoi_add(i,x,y,true,true)
     end
+    local e2 = os.clock()
+    --print("bench_test_my_lua_aoi add_cost:", e2 - b)
     aoi_obj:aoi_update()
     local b = os.clock()
+    local cnt = 0
     for j =1,times do
-        for i = 1,n do
+        for i = 1,1000 do
             local x = math.random(1,9)
             local y = math.random(1,9)
             local id = math.random(1,n)
             aoi_obj:aoi_set(id,x,y)
-            if i%1000 == 0 or i==n then
-                aoi_obj:aoi_update()
-            end
+            -- if i%10000 == 0 then
+            --     aoi_obj:aoi_update()
+            --     cnt = cnt + 1
+            -- end
         end
+        aoi_obj:aoi_update()
+        cnt = cnt + 1
     end
     local e3 = os.clock()
-    print("bench_test_my_lua_aoi cost:", e3 - b)
+    print("bench_test_my_lua_aoi cost:", cnt, e3 - b)
 end
 
 local ZiXunAoi = require "zixun.aoi"
@@ -162,52 +169,64 @@ local function bench_test_zixun(times, n)
     -- local e2 = os.clock()
     -- print("test_zixun cost:", e2 - b)
     local b = os.clock()
+    local cnt = 0
     for j =1,times do
-        for i = 1,n do
+        for i = 1,1000 do
             local x = math.random(0,8)
             local y = math.random(0,8)
             local id = math.random(1,n)
             aoi_obj:aoi_set(id,x,y)
-            if i%1000 == 0 or i==n then
-                aoi_obj:aoi_update()
-            end
+            -- if i%10000 == 0then
+            --     aoi_obj:aoi_update()
+            --     cnt = cnt + 1
+            -- end
         end
+        aoi_obj:aoi_update()
+        cnt = cnt + 1
     end
     --aoi_obj:aoi_update()
     local e3 = os.clock()
-    print("bench_test_zixun cost:", e3 - b)
+    print("bench_test_zixun cost:", cnt, e3 - b)
 end
 
-local function bench_test_my_aoi(times,n)
+local function bench_test_my_c_aoi(times,n)
     local my_aoi = require "laoi"
+    local b = os.clock()
     local world = my_aoi.create_world(9, 9)
     for i=1,n do
         local x = math.random(1,9)
         local y = math.random(1,9)
         my_aoi.add_obj(world,i,x,y,1,1)
     end
+    local e2 = os.clock()
+    --print("bench_test_my_aoi add_cost:", e2 - b)
     my_aoi.update_aoi(world)
     local b = os.clock()
+    local cnt = 0
     for j=1,times do
-        for i = 1,n do
+        for i = 1,1000 do
             local x = math.random(1,9)
             local y = math.random(1,9)
             local id = math.random(1,n)
             my_aoi.set_obj(world, id, x, y)
-            if i%1000 == 0 or i ==n then
-                my_aoi.update_aoi(world) --??为啥这个次数多了就比lua版的满了。。。只有一次就比lua的快
-            end
+            -- if i%10000 == 0 then
+            --     my_aoi.update_aoi(world)
+            --     cnt = cnt + 1
+            -- end
+            --??为啥这个次数多了就比lua版的满了。。。只有一次就比lua的快
         end
+        my_aoi.update_aoi(world)
+        cnt = cnt + 1
     end
     local e3 = os.clock()
-    print("bench_test_my_aoi cost:", e3 - b)
+    print("bench_test_my_c_aoi cost:", cnt, e3 - b)
     --print("analyze", my_aoi.get_time_cost())
 end
 
-bench_test_my_lua_aoi(10,10000)
-bench_test_my_aoi(10,10000)
---bench_test_zixun(10,10000)
-
+--同样的代码c更快
+bench_test_zixun(200,10000)
+bench_test_my_lua_aoi(200,10000)
+bench_test_my_c_aoi(200,10000)
 
 function test()
     local my_aoi = require "laoi"
