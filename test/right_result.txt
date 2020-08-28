@@ -1,0 +1,71 @@
+==========print_aoi_events========
+watcher 1
+event:A,id:1,x:2,y:2
+event:A,id:7,x:2,y:2
+event:A,id:6,x:3,y:3
+watcher 6
+event:A,id:1,x:2,y:2
+event:A,id:7,x:2,y:2
+event:A,id:6,x:3,y:3
+watcher 7
+event:A,id:1,x:2,y:2
+event:A,id:7,x:2,y:2
+event:A,id:6,x:3,y:3
+==========print_aoi_events========
+watcher 1
+watcher 6
+watcher 7
+==========print_aoi_events========
+watcher 1
+event:D,id:7,x:2,y:2
+event:A,id:7,x:2,y:3
+watcher 6
+event:D,id:7,x:2,y:2
+event:A,id:7,x:2,y:3
+watcher 7
+event:D,id:7,x:2,y:2
+event:A,id:7,x:2,y:3
+==========print_aoi_events========
+watcher 1
+event:A,id:2,x:1,y:2
+watcher 2
+event:A,id:2,x:1,y:2
+event:A,id:1,x:2,y:2
+event:A,id:7,x:2,y:3
+watcher 6
+watcher 7
+event:A,id:2,x:1,y:2
+==========print_aoi_events========
+watcher 1
+watcher 2
+watcher 6
+watcher 7
+==========print_aoi_events========
+watcher 1
+event:A,id:7,x:1,y:1
+event:D,id:2,x:1,y:2
+event:D,id:7,x:2,y:3
+event:A,id:2,x:3,y:3
+watcher 2
+event:D,id:2,x:1,y:2
+event:D,id:7,x:2,y:3
+event:A,id:2,x:3,y:3
+event:A,id:6,x:3,y:3
+watcher 6
+event:A,id:2,x:3,y:3
+watcher 7
+event:D,id:2,x:1,y:2
+event:D,id:7,x:2,y:3
+event:D,id:6,x:3,y:3
+event:A,id:7,x:1,y:1
+==========print_aoi_events========
+watcher 1
+event:A,id:2,x:3,y:1
+event:D,id:2,x:3,y:3
+watcher 2
+event:D,id:2,x:3,y:3
+event:D,id:6,x:3,y:3
+event:A,id:2,x:3,y:1
+watcher 6
+event:D,id:2,x:3,y:3
+watcher 7

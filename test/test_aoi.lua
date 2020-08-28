@@ -25,7 +25,7 @@ local function PrintTable(table , level)
     print(indent .. "}")
 end
 
-local function print_aoi_events(aoi_events)
+local function old_print_aoi_events(aoi_events)
     print("==========print_aoi_events========")
     for watcher, grid_info in pairs(aoi_events) do
         print("watcher", watcher)
@@ -46,6 +46,45 @@ local function print_aoi_events(aoi_events)
                 end
             end
             
+        end
+    end
+end
+
+local function print_aoi_events(aoi_events)
+    print("==========print_aoi_events========")
+    -- for watcher, grid_info in pairs(aoi_events) do
+    --     print("watcher", watcher)
+    --     for grid_idx, event_list in pairs(grid_info) do
+    --         --print("grid_idx", grid_idx)
+    --         for i = 1, 3 do
+    --             local sub_event_list = event_list[i]
+    --             if sub_event_list then
+    --                 for _, e in ipairs(sub_event_list) do
+    --                     if(e[1]==1 or e[1] == 'A') then
+    --                         print(string.format("event:A,id:%d,x:%d,y:%d",e[2],e[3],e[4]))
+    --                     elseif(e[1]==2 or e[1] == 'D') then
+    --                         print(string.format("event:D,id:%d,x:%d,y:%d",e[2],e[3],e[4]))
+    --                     else
+    --                         print(string.format("event:U,id:%d,x:%d,y:%d",e[2],e[3],e[4]))
+    --                     end
+    --                 end
+    --             end
+    --         end
+            
+    --     end
+    -- end
+    for watcher, watch_ret in pairs(aoi_events) do
+        print("watcher", watcher)
+        for _, data in ipairs(watch_ret) do
+            for _, e in ipairs(data) do
+                if(e[1]==1 or e[1] == 'A') then
+                    print(string.format("event:A,id:%d,x:%d,y:%d",e[2],e[3],e[4]))
+                elseif(e[1]==2 or e[1] == 'D') then
+                    print(string.format("event:D,id:%d,x:%d,y:%d",e[2],e[3],e[4]))
+                else
+                    print(string.format("event:U,id:%d,x:%d,y:%d",e[2],e[3],e[4]))
+                end
+            end
         end
     end
 end
@@ -133,7 +172,7 @@ local function bench_test_my_lua_aoi(times, n)
     local b = os.clock()
     local cnt = 0
     for j =1,times do
-        for i = 1,1000 do
+        for i = 1,100 do
             local x = math.random(1,9)
             local y = math.random(1,9)
             local id = math.random(1,n)
@@ -171,12 +210,12 @@ local function bench_test_zixun(times, n)
     local b = os.clock()
     local cnt = 0
     for j =1,times do
-        for i = 1,1000 do
+        for i = 1,10000 do
             local x = math.random(0,8)
             local y = math.random(0,8)
             local id = math.random(1,n)
             aoi_obj:aoi_set(id,x,y)
-            -- if i%10000 == 0then
+            -- if i%10 == 0then
             --     aoi_obj:aoi_update()
             --     cnt = cnt + 1
             -- end
@@ -204,12 +243,12 @@ local function bench_test_my_c_aoi(times,n)
     local b = os.clock()
     local cnt = 0
     for j=1,times do
-        for i = 1,1000 do
+        for i = 1,10000 do
             local x = math.random(1,9)
             local y = math.random(1,9)
             local id = math.random(1,n)
             my_aoi.set_obj(world, id, x, y)
-            -- if i%10000 == 0 then
+            -- if i%10 == 0 then
             --     my_aoi.update_aoi(world)
             --     cnt = cnt + 1
             -- end
@@ -224,9 +263,11 @@ local function bench_test_my_c_aoi(times,n)
 end
 
 --同样的代码c更快
-bench_test_zixun(200,10000)
-bench_test_my_lua_aoi(200,10000)
-bench_test_my_c_aoi(200,10000)
+bench_test_zixun(100,10000)
+--bench_test_my_lua_aoi(100,10000)
+bench_test_my_c_aoi(100,10000) --todo 优化点1， c的取周围9个格子 优化点2 返回的aoi_events少一层table结构 
+--todo zixun的get_nearby_grids是有bug的。。
+--少一层的aoi_events结果，速度就上去了=v=
 
 function test()
     local my_aoi = require "laoi"

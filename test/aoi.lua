@@ -190,22 +190,30 @@ end
 
 
 local function get_nearby_grids(aoi_obj, grid_obj)
+    --Step1 返回少于9个格子
     local ret = {}
-    local x, y = get_xy_by_grididx(aoi_obj, grid_obj.grid_idx)
-    --print("get_nearby_grids", x, y)
-    for i = 1, 9 do
-        local _x = x + NEARBY_CEIL_OFFSETS[i][1]
-        local _y = y + NEARBY_CEIL_OFFSETS[i][2]
-        --print("_x _y", _x, _y)
-        if (not (_x>=1 and _x<=aoi_obj.row and _y >=1 and _y<=aoi_obj.col)) then
-            --print("gg")
-            ret[i] = nil
-        else
-            local idx = get_grid_idx(aoi_obj, _x, _y)
-            --print("get_nearby_grids add", _x, _y, idx)
-            ret[i] = aoi_obj.grids[idx]
+    local cur_grididx = grid_obj.grid_idx
+    local col = aoi_obj.col
+    local grids = aoi_obj.grids
+    local x,y = get_xy_by_grididx(aoi_obj, cur_grididx)
+    for _, info in ipairs(NEARBY_CEIL_OFFSETS) do
+        local _x = x + info[1]
+        local _y = y + info[2]
+        if _x>=1 and _x <= aoi_obj.row and _y >=1 and _y <= aoi_obj.col then
+            local k = get_grid_idx(aoi_obj, _x, _y)
+            local grid = grids[k]
+            ret[k] = grid
         end
     end
+    -- for i=-1,1 do
+    --     for j=-1,1 do
+    --         local k = i*col + cur_grididx + j
+    --         local grid = grids[k]
+    --         if grid and not ret[k] then
+    --             ret[k] = grid
+    --         end
+    --     end
+    -- end
     return ret
 end
 
@@ -273,89 +281,109 @@ local function grid_get_add_event(self)
 end
 
 
-local function add_grid_events_to_watchers(grid_obj, e, watcher_id, result_tbl)
+--比zixun慢的原因是这里返回的数据结构多了一层
+local function add_grid_events_to_watchers(aoi_obj,grid_obj, e, watcher_id, result_tbl)
+    --Step2 数据结构少一层
     --print("add_grid_events_to_watchers", grid_obj.grid_idx, e, watcher_id)
+    --local b = os.clock()
     local watch_ret = result_tbl[watcher_id]
     if not watch_ret then
         watch_ret = {}
         result_tbl[watcher_id] = watch_ret
     end
 
-    local grid_ret = watch_ret[grid_obj.grid_idx]
-    if not grid_ret then
-        grid_ret = {}
-        watch_ret[grid_obj.grid_idx] = grid_ret
-    end
+    -- local grid_ret = watch_ret[grid_obj.grid_idx]
+    -- if not grid_ret then
+    --     grid_ret = {}
+    --     watch_ret[grid_obj.grid_idx] = grid_ret
+    -- end
 
     local data = nil
     if e == "U" then
         data = grid_get_update_event(grid_obj)
-        grid_ret[3] = data
+        watch_ret[#watch_ret+1] = data
+        --grid_ret[3] = data
     elseif e == "D" then
         data = grid_get_del_event(grid_obj)
-        grid_ret[2] = data
+        watch_ret[#watch_ret+1] = data
+        --grid_ret[2] = data
     elseif e == "A" then
         data = grid_get_add_event(grid_obj)
-        grid_ret[1] = data
+        watch_ret[#watch_ret+1] = data
+        --grid_ret[1] = data
     else
         error(string.format("invalid event:%s", e))
     end
+    --local e = os.clock()
+    --aoi_obj.add_grid_events_to_watchers_time = (aoi_obj.add_grid_events_to_watchers_time or 0) + e-b
 end
 
-local function resolve_change_watcher(self, grid_obj, grid_list, pre_idx, id, result_tbl)
+local function resolve_change_watcher(self, grid_obj, right_grid_map, pre_idx, id, result_tbl)
     --print("resolve_change_watcher", grid_obj.grid_idx, pre_idx, id)
     if pre_idx then
-        local x,y = get_xy_by_grididx(self, pre_idx)
-        for i = 1, 9 do
-            local _x = x + NEARBY_CEIL_OFFSETS[i][1]
-            local _y = y + NEARBY_CEIL_OFFSETS[i][2]
-            if (not (_x>=1 and _x<=self.row and _y >=1 and _y<=self.col)) then
-                goto CONTINUE
-            end
-            local tmp_idx = get_grid_idx(self, _x, _y)
-            local tmp_grid = self.grids[tmp_idx]
-            if out_of_range(self, grid_obj.grid_idx, tmp_idx) then
-                add_grid_events_to_watchers(tmp_grid, 'D', id, result_tbl)
+        local old_grid = self.grids[pre_idx]
+        local left_grid_map = get_nearby_grids(self, old_grid)
+        --local left_grid_map = get_nearby_grids(self, grid_obj)
+        for tmp_idx, tmp_grid in pairs(left_grid_map) do
+            if right_grid_map[tmp_idx] then
+                add_grid_events_to_watchers(self,tmp_grid, 'U', id, result_tbl)
+                right_grid_map[tmp_idx] = nil
             else
-                add_grid_events_to_watchers(tmp_grid, 'U', id, result_tbl)
+                add_grid_events_to_watchers(self,tmp_grid, 'D', id, result_tbl)
             end
-            ::CONTINUE::
+            left_grid_map[tmp_idx] = nil
         end
+        -- local x,y = get_xy_by_grididx(self, pre_idx)
+        -- for i = 1, 9 do
+        --     local _x = x + NEARBY_CEIL_OFFSETS[i][1]
+        --     local _y = y + NEARBY_CEIL_OFFSETS[i][2]
+        --     if (not (_x>=1 and _x<=self.row and _y >=1 and _y<=self.col)) then
+        --         goto CONTINUE
+        --     end
+        --     local tmp_idx = get_grid_idx(self, _x, _y)
+        --     local tmp_grid = self.grids[tmp_idx]
+        --     if out_of_range(self, grid_obj.grid_idx, tmp_idx) then
+        --         add_grid_events_to_watchers(tmp_grid, 'D', id, result_tbl)
+        --     else
+        --         add_grid_events_to_watchers(tmp_grid, 'U', id, result_tbl)
+        --     end
+        --     ::CONTINUE::
+        -- end
     end
-    for i = 1, 9 do
-        local tmp_grid = grid_list[i]
-        if not tmp_grid then
-            goto CONTINUE
-        end
-        if (pre_idx and not out_of_range(self, pre_idx, tmp_grid.grid_idx)) then
-            goto CONTINUE
-        end
-        add_grid_events_to_watchers(tmp_grid, 'A', id, result_tbl)
-        ::CONTINUE::
+    for _, tmp_grid in pairs(right_grid_map) do
+        add_grid_events_to_watchers(self,tmp_grid, 'A', id, result_tbl)
     end
+    -- for i = 1, 9 do
+    --     local tmp_grid = grid_list[i]
+    --     if not tmp_grid then
+    --         goto CONTINUE
+    --     end
+    --     if (pre_idx and not out_of_range(self, pre_idx, tmp_grid.grid_idx)) then
+    --         goto CONTINUE
+    --     end
+    --     add_grid_events_to_watchers(tmp_grid, 'A', id, result_tbl)
+    --     ::CONTINUE::
+    -- end
 end
 
 local function handle_aoi(self, grid_obj, result_tbl)
     --print("handle_aoi", grid_obj.grid_idx)
-    local grid_list = get_nearby_grids(self, grid_obj)
-    -- for i = 1, 9 do
-    --     local tmp_grid = grid_list[i]
-    --     if tmp_grid then
-    --         print(tmp_grid.grid_idx)
-    --     end
-    -- end
+    local grid_map = get_nearby_grids(self, grid_obj)
     local watchers = grid_obj.watchers
     for watcher_id,_ in pairs(watchers) do
         local pre_idx = self.pre_where_is[watcher_id]
         if pre_idx == grid_obj.grid_idx then
-            for i = 1, 9 do
-                local tmp_grid = grid_list[i]
-                if tmp_grid then
-                    add_grid_events_to_watchers(tmp_grid, 'U', watcher_id, result_tbl)
-                end
+            -- for i = 1, 9 do
+            --     local tmp_grid = grid_list[i]
+            --     if tmp_grid then
+            --         add_grid_events_to_watchers(tmp_grid, 'U', watcher_id, result_tbl)
+            --     end
+            -- end
+            for _, tmp_grid in pairs(grid_map) do
+                add_grid_events_to_watchers(self,tmp_grid, 'U', watcher_id, result_tbl)
             end
         else
-            resolve_change_watcher(self, grid_obj, grid_list, pre_idx, watcher_id, result_tbl)
+            resolve_change_watcher(self, grid_obj, grid_map, pre_idx, watcher_id, result_tbl)
             self.pre_where_is[watcher_id] = grid_obj.grid_idx
         end
     end
@@ -392,10 +420,13 @@ end
 function aoi_mt:aoi_update()
     local result_tbl = {}
 
+    --local b = os.clock()
     local grid_num = self.row * self.col
     for i = 1, grid_num do
         handle_aoi(self, self.grids[i], result_tbl)
     end
+   -- local e = os.clock()
+    --self.handle_aoi_cost_time = (self.handle_aoi_cost_time or 0 ) + e-b
     for i = 1, grid_num do
         handle_cache(self.grids[i])
     end

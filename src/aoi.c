@@ -50,6 +50,64 @@ static int out_of_range(World* w, int grid_idx, int idx){
     return 0;
 }
 
+static HashTable* get_nearby_grids(World* w, Grid* grid){
+    // Grid** grid_list = (Grid**)malloc(9*sizeof(Grid*));
+    // int x,y;
+    // get_xy_by_grididx(w,grid->idx,&x,&y);
+    // int i, _x, _y;
+    // for(i=0; i<9; i++) {
+    //     _x = x + NEARBY_CEIL_OFFSETS[i][0];
+    //     _y = y + NEARBY_CEIL_OFFSETS[i][1];
+    //     if (!(_x>=1&&_x<=w->row&&_y>=1&&_y<=w->col)){
+    //         grid_list[i] = NULL;
+    //         continue;
+    //     }
+    //     int tmp_idx = get_grid_idx(w, _x, _y);
+    //     Grid* tmp_grid = w->grids[tmp_idx];
+    //     grid_list[i] = tmp_grid;
+    // }
+    // local ret = {}
+    // local cur_grididx = grid_obj.grid_idx
+    // local col = aoi_obj.col
+    // local grids = aoi_obj.grids
+    int grid_num = w->row*w->col;
+    HashTable* ret = hashtbl_create();
+
+    int x,y;
+    get_xy_by_grididx(w,grid->idx,&x,&y);
+    int i, _x, _y;
+    for(i=0; i<9; i++) {
+        _x = x + NEARBY_CEIL_OFFSETS[i][0];
+        _y = y + NEARBY_CEIL_OFFSETS[i][1];
+        if (_x>=1&&_x<=w->row&&_y>=1&&_y<=w->col){
+            int tmp_idx = get_grid_idx(w,_x,_y);
+            Grid* grid = w->grids[tmp_idx];
+            hashtbl_upsert(ret, tmp_idx, grid);
+            //printf("get_nearby_grids %d %d\n",grid->idx,tmp_idx);
+        }
+    }
+
+    // for (int i = -1; i<=1; i++){
+    //     for (int j= -1; j<=1; j++){
+    //         int index = i*w->col + grid->idx + j;
+    //         if(index >= 0 && index < grid_num){
+    //             Grid* grid = w->grids[index];
+    //             hashtbl_upsert(ret, index, grid);
+    //         }
+    //     }
+    // }
+    //         local k = i*col + cur_grididx + j
+    //         local grid = grids[k]
+    //         if grid and not ret[k] then
+    //             ret[k] = grid
+    //         end
+    //     end
+    // end
+    // return ret
+
+    return ret;
+}
+
 static void print_event(int grid_idx, char flag, HashTable* events){
     HashTableIter iter;
     hashtbl_iter_reset(&iter);
@@ -252,17 +310,22 @@ static void add_grid_events_to_watchers(Grid* grid, char e,int id, lua_State* L)
         lua_rawseti(L, idx_ret, id);
     }
     int idx_watcher_ret = lua_gettop(L);//5
-    lua_rawgeti(L, idx_watcher_ret, grid->idx);
-    if(lua_isnil(L,-1)){
-        lua_pop(L,1);
-        lua_newtable(L);
-        lua_pushvalue(L,-1);
-        lua_rawseti(L, idx_watcher_ret, grid->idx);
-    }
-    int idx_watcher_grid_ret = lua_gettop(L);//6
-    lua_pushvalue(L, 4);//引用,idx_grid_add_del_update==4
-    lua_rawseti(L, idx_watcher_grid_ret, key_idx);
-    lua_pop(L,4);
+    size_t tbl_len = lua_rawlen(L, idx_watcher_ret);
+    lua_pushvalue(L,4);
+    lua_rawseti(L,idx_watcher_ret,tbl_len+1);
+    lua_pop(L,3);
+
+    // lua_rawgeti(L, idx_watcher_ret, grid->idx);
+    // if(lua_isnil(L,-1)){
+    //     lua_pop(L,1);
+    //     lua_newtable(L);
+    //     lua_pushvalue(L,-1);
+    //     lua_rawseti(L, idx_watcher_ret, grid->idx);
+    // }
+    // int idx_watcher_grid_ret = lua_gettop(L);//6
+    // lua_pushvalue(L, 4);//引用,idx_grid_add_del_update==4
+    // lua_rawseti(L, idx_watcher_grid_ret, key_idx);
+    // lua_pop(L,4);
     //clock_t time_end = clock();
     //double time_cost = (double)(time_end-time_begin)/CLOCKS_PER_SEC;
     //cost_time_in_lua += time_cost;
@@ -270,40 +333,65 @@ static void add_grid_events_to_watchers(Grid* grid, char e,int id, lua_State* L)
 }
 
 //watcher到了grid
-static void resolve_change_watcher(World* w, Grid* grid, Grid** grid_list, int pre_idx, int id, lua_State* L){
+static void resolve_change_watcher(World* w, Grid* grid, HashTable* right_grid_map, int pre_idx, int id, lua_State* L){
     //printf("resolve_change_watcher id:%d grid_idx:%d pre_idx:%d\n",id, grid->idx, pre_idx);
+    HashTableIter iter;
+    HashTable* left_grid_map;
     if (pre_idx!=-1){
-        int x,y;
-        get_xy_by_grididx(w,pre_idx,&x,&y);
-        int i, _x, _y;
-        for(i=0; i<9; i++) {
-            _x = x + NEARBY_CEIL_OFFSETS[i][0];
-            _y = y + NEARBY_CEIL_OFFSETS[i][1];
-            if (!(_x>=1&&_x<=w->row&&_y>=1&&_y<=w->col)){
-                continue;
-            }
-            int tmp_idx = get_grid_idx(w, _x, _y);
-            Grid* tmp_grid = w->grids[tmp_idx];
+        // int x,y;
+        // get_xy_by_grididx(w,pre_idx,&x,&y);
+        // int i, _x, _y;
+        // for(i=0; i<9; i++) {
+        //     _x = x + NEARBY_CEIL_OFFSETS[i][0];
+        //     _y = y + NEARBY_CEIL_OFFSETS[i][1];
+        //     if (!(_x>=1&&_x<=w->row&&_y>=1&&_y<=w->col)){
+        //         continue;
+        //     }
+        //     int tmp_idx = get_grid_idx(w, _x, _y);
+        //     Grid* tmp_grid = w->grids[tmp_idx];
 
-            if(out_of_range(w, grid->idx, tmp_idx)){
-                add_grid_events_to_watchers(tmp_grid, 'D', id, L);
-            }
-            else{
+        //     if(out_of_range(w, grid->idx, tmp_idx)){
+        //         add_grid_events_to_watchers(tmp_grid, 'D', id, L);
+        //     }
+        //     else{
+        //         add_grid_events_to_watchers(tmp_grid, 'U', id, L);
+        //     }
+        // }
+        Grid* old_grid = w->grids[pre_idx];
+        left_grid_map = get_nearby_grids(w, old_grid);
+        
+        hashtbl_iter_reset(&iter);
+        while(hashtbl_iter(left_grid_map, &iter)){
+            Grid* tmp_grid=(Grid*)(iter.node->value);
+            if(hashtbl_get(right_grid_map, tmp_grid->idx)){
                 add_grid_events_to_watchers(tmp_grid, 'U', id, L);
             }
+            else{
+                add_grid_events_to_watchers(tmp_grid, 'D', id, L);
+            }
         }
     }
 
-    for (int i = 0; i<9;i++){
-        Grid* tmp_grid = grid_list[i];
-        if(!tmp_grid){
-            continue;
+    hashtbl_iter_reset(&iter);
+    while(hashtbl_iter(right_grid_map, &iter)){
+        Grid* tmp_grid=(Grid*)(iter.node->value);
+        if (pre_idx==-1 || !hashtbl_get(left_grid_map, tmp_grid->idx)){
+            add_grid_events_to_watchers(tmp_grid, 'A', id, L);
         }
-        if(pre_idx!=-1 && !out_of_range(w, pre_idx, tmp_grid->idx)){
-            continue;//之前已经get 'U'过了
-        }
-        add_grid_events_to_watchers(tmp_grid, 'A', id, L);
     }
+    if (pre_idx!=-1){
+        hashtbl_destroy(left_grid_map);
+    }
+    // for (int i = 0; i<9;i++){
+    //     Grid* tmp_grid = grid_list[i];
+    //     if(!tmp_grid){
+    //         continue;
+    //     }
+    //     if(pre_idx!=-1 && !out_of_range(w, pre_idx, tmp_grid->idx)){
+    //         continue;//之前已经get 'U'过了
+    //     }
+    //     add_grid_events_to_watchers(tmp_grid, 'A', id, L);
+    // }
 }
 static int grid_add_obj(Grid* grid, int id, int x, int y, int is_maker, int is_watcher){
     if(is_maker){
@@ -421,49 +509,45 @@ static void handle_cache(Grid* grid){
     grid->caches = hashtbl_create();
 }
 
-static Grid** get_nearby_grids(World* w, Grid* grid){
-    Grid** grid_list = (Grid**)malloc(9*sizeof(Grid*));
-    int x,y;
-    get_xy_by_grididx(w,grid->idx,&x,&y);
-    int i, _x, _y;
-    for(i=0; i<9; i++) {
-        _x = x + NEARBY_CEIL_OFFSETS[i][0];
-        _y = y + NEARBY_CEIL_OFFSETS[i][1];
-        if (!(_x>=1&&_x<=w->row&&_y>=1&&_y<=w->col)){
-            grid_list[i] = NULL;
-            continue;
-        }
-        int tmp_idx = get_grid_idx(w, _x, _y);
-        Grid* tmp_grid = w->grids[tmp_idx];
-        grid_list[i] = tmp_grid;
-    }
-    return grid_list;
-}
-
 static void handle_aoi(World* w, Grid* grid, lua_State* L)
 {
+
+    HashTable* grid_map = get_nearby_grids(w, grid);
+    HashTableIter iter2;
+
     HashTableIter iter;
     hashtbl_iter_reset(&iter);
-    Grid** grid_list = get_nearby_grids(w, grid);
+    //Grid** grid_list = get_nearby_grids(w, grid);
     while(hashtbl_iter(grid->watchers, &iter)){
         Obj* watcher=(Obj*)(iter.node->value);
         int pre_idx = -1;
         int id = watcher->id;
+        //printf("handle_aoi %d %d\n",grid->idx, id);
         if(hashtbl_get(w->pre_where_is, id)){
             int *p_idx = hashtbl_get(w->pre_where_is, id);
             pre_idx=*p_idx;
         }
         if (pre_idx == grid->idx){
-            for (int i = 0; i<9;i++){
-                Grid* tmp_grid = grid_list[i];
-                if(!tmp_grid){
-                    continue;
-                }
+
+            
+            hashtbl_iter_reset(&iter2);
+            while(hashtbl_iter(grid_map, &iter2)){
+                Grid* tmp_grid=(Grid*)(iter2.node->value);
+                // if(id==6) {
+                //     printf("tmp_grid %d\n",tmp_grid->idx);
+                // }
                 add_grid_events_to_watchers(tmp_grid, 'U', id, L);
             }
+            // for (int i = 0; i<9;i++){
+            //     Grid* tmp_grid = grid_list[i];
+            //     if(!tmp_grid){
+            //         continue;
+            //     }
+            //     add_grid_events_to_watchers(tmp_grid, 'U', id, L);
+            // }
         }
         else{
-            resolve_change_watcher(w, grid, grid_list, pre_idx, id, L);
+            resolve_change_watcher(w, grid, grid_map, pre_idx, id, L);
             if(hashtbl_get(w->pre_where_is, id)){
                 int *p_idx = hashtbl_get(w->pre_where_is, id);
                 *p_idx=grid->idx;
@@ -475,7 +559,8 @@ static void handle_aoi(World* w, Grid* grid, lua_State* L)
             }
         }
     }
-    free(grid_list);
+    hashtbl_destroy(grid_map);
+    //free(grid_list);
 }
 
 World* aoi_create_world(int row, int col){
