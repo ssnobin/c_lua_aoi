@@ -172,7 +172,18 @@ static int test_create(lua_State* L) {
     }
     lua_newtable(L);
     lua_setuservalue(L,1);
-    return 1;
+
+    printf("test_create\n");
+    printf("xx %lu\n",sizeof(w->grids[0]));
+    Grid* grid = w->grids[0];
+    printf("push grid userdata\n");
+    lua_pushlightuserdata(L, grid);
+    printf("new uservalue\n");
+    lua_newtable(L);
+    printf("set uservalue\n");
+    lua_setuservalue(L,-2);
+    printf("set grid userdata uservalue\n");
+    return 0;
 }
 
 static int test_set(lua_State* L) {
@@ -183,7 +194,14 @@ static int test_set(lua_State* L) {
     int key = (int)lua_tointeger(L, 2);
     int value = (int)lua_tointeger(L, 3);
     int type = lua_getuservalue(L,1);
-    lua_pushinteger(L,value);
+    Obj* obj = (Obj*)malloc(sizeof(Obj));
+    obj->id = key;
+    obj->x = value;
+    obj->y = value;
+    obj->is_maker = 1;
+    obj->is_watcher = 1;
+    //lua_pushinteger(L,value);
+    lua_pushlightuserdata(L, obj);
     lua_rawseti(L,-2,key);
     return 0;
 }
@@ -193,9 +211,19 @@ static int test_get(lua_State* L) {
     if(w==NULL){
         return luaL_argerror(L,1,"no world");
     }
-    int key = (int)lua_tointeger(L, 2);
-    int type = lua_getuservalue(L,1);
-    lua_rawgeti(L,-1,key);
+    //int key = (int)lua_tointeger(L, 2);
+    //int type = lua_getuservalue(L,1);
+    //lua_rawgeti(L,-1,key);
+    //Obj* obj = (Obj*)lua_touserdata(L,-1);
+    //printf("obj key is %d\n", obj->id);
+    //printf("obj value is %d\n", obj->x);
+
+    Grid* grid = w->grids[0];
+    printf("gg1\n");
+    lua_pushlightuserdata(L, grid);
+    printf("gg2\n");
+    int type = lua_getuservalue(L,-1);
+    printf("grid uservalue is%d\n", type);
     return 1;
 }
 

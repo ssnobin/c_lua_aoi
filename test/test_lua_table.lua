@@ -106,6 +106,6 @@ local function test_c_handle_luatable()
     print("test_c_handle_luatable total_cost:", e - b)
     
 end
-test_aoi_lua_table()
+--test_aoi_lua_table()
 test_lua_table()
 test_c_handle_luatable()
