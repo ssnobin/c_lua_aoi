@@ -268,7 +268,9 @@ bench_test_my_lua_aoi(100,10000)
 bench_test_my_c_aoi(100,10000) --todo 优化点1， c的取周围9个格子 优化点2 返回的aoi_events少一层table结构 
 --todo zixun的get_nearby_grids是有bug的。。
 --少一层的aoi_events结果，速度就上去了=v=
-
+--bench_test_zixun cost:	100	19.828968
+--bench_test_my_lua_aoi cost:	100	16.43329
+--bench_test_my_c_aoi cost:	100	11.316003
 function test()
     local my_aoi = require "laoi"
     -- local world = my_aoi.create_world(9, 9)

@@ -393,7 +393,7 @@ static void resolve_change_watcher(World* w, Grid* grid, HashTable* right_grid_m
     //     add_grid_events_to_watchers(tmp_grid, 'A', id, L);
     // }
 }
-static int grid_add_obj(Grid* grid, int id, int x, int y, int is_maker, int is_watcher){
+static int grid_add_obj(World* w, Grid* grid, int id, int x, int y, int is_maker, int is_watcher){
     if(is_maker){
         if(hashtbl_get(grid->caches, id)){
             //之前可能有D 在里面
@@ -418,10 +418,11 @@ static int grid_add_obj(Grid* grid, int id, int x, int y, int is_maker, int is_w
         obj->is_maker = is_maker;
         obj->is_watcher = is_watcher;
         hashtbl_insert(grid->watchers, obj->id, obj);
+        hashtbl_upsert(w->watcher_grids, grid->idx, NULL);
     }
 }
 
-static int grid_del_obj(Grid* grid, int id){
+static int grid_del_obj(World* w, Grid* grid, int id){
     if(hashtbl_get(grid->makers, id)){//已经落地了
         //旧的cache清除
         if(hashtbl_get(grid->caches, id)){
@@ -456,6 +457,9 @@ static int grid_del_obj(Grid* grid, int id){
         //如果只是watcher的话，释放对象
             free(obj);
             obj=NULL;
+        }
+        if(grid->watchers->count == 0){
+            hashtbl_remove(w->watcher_grids, grid->idx);
         }
     }
 }
@@ -524,7 +528,7 @@ static void handle_aoi(World* w, Grid* grid, lua_State* L)
         int id = watcher->id;
         //printf("handle_aoi %d %d\n",grid->idx, id);
         if(hashtbl_get(w->pre_where_is, id)){
-            int *p_idx = hashtbl_get(w->pre_where_is, id);
+            int *p_idx = (int*)hashtbl_get(w->pre_where_is, id);
             pre_idx=*p_idx;
         }
         if (pre_idx == grid->idx){
@@ -549,7 +553,7 @@ static void handle_aoi(World* w, Grid* grid, lua_State* L)
         else{
             resolve_change_watcher(w, grid, grid_map, pre_idx, id, L);
             if(hashtbl_get(w->pre_where_is, id)){
-                int *p_idx = hashtbl_get(w->pre_where_is, id);
+                int *p_idx = (int*)hashtbl_get(w->pre_where_is, id);
                 *p_idx=grid->idx;
             }
             else{
@@ -582,6 +586,7 @@ World* aoi_create_world(int row, int col){
     }
     w->where_is=hashtbl_create();
     w->pre_where_is=hashtbl_create();
+    w->watcher_grids=hashtbl_create();
     return w;
 }
 
@@ -603,8 +608,16 @@ void aoi_update_aoi(World*w, void* l){
     int grid_num = w->row*w->col;
     //抛出事件
 
-    for(int i=0;i<grid_num;i++){
-        Grid* grid = w->grids[i];
+    //for(int i=0;i<grid_num;i++){
+    //    Grid* grid = w->grids[i];
+    //    handle_aoi(w, grid, L);
+    //}
+    HashTableIter iter;
+    hashtbl_iter_reset(&iter);
+    while(hashtbl_iter(w->watcher_grids, &iter)){
+        int grid_idx = (iter.node->key);
+        //printf("handle_aoi grid_idx %d\n", grid_idx);
+        Grid* grid = w->grids[grid_idx];
         handle_aoi(w, grid, L);
     }
     //clock_t time_end = clock();
@@ -644,18 +657,18 @@ int aoi_add_obj(World* w, int id, int x, int y, int is_maker, int is_watcher){
     int *p_idx = (int*)malloc(sizeof(int));
     *p_idx=idx;//不同于p_idx=&idx
     hashtbl_insert(w->where_is, id, p_idx);
-    grid_add_obj(grid, id, x, y, is_maker, is_watcher);
+    grid_add_obj(w, grid, id, x, y, is_maker, is_watcher);
     return 0;
 }
 
 int aoi_del_obj(World* w, int id){
-    int *p_idx = hashtbl_get(w->where_is, id);
+    int *p_idx = (int*)hashtbl_get(w->where_is, id);
     if(!p_idx){
         printf("del_obj not_exist %d\n", id);
         return 1;
     }
     Grid* grid = w->grids[*p_idx];
-    grid_del_obj(grid, id);
+    grid_del_obj(w, grid, id);
 
     hashtbl_remove(w->where_is, id);
     free(p_idx);
@@ -663,7 +676,7 @@ int aoi_del_obj(World* w, int id){
 }
 
 int aoi_set_obj(World* w, int id, int x, int y){
-    int *p_idx = hashtbl_get(w->where_is, id);
+    int *p_idx = (int*)hashtbl_get(w->where_is, id);
     if(!p_idx){
         printf("set_obj not_exist %d\n", id);
         return 1;
@@ -684,8 +697,8 @@ int aoi_set_obj(World* w, int id, int x, int y){
         if(hashtbl_get(old_grid->watchers, id)){
             is_watcher = 1;
         }
-        grid_del_obj(old_grid, id);
-        grid_add_obj(new_grid, id, x, y, is_maker, is_watcher);
+        grid_del_obj(w, old_grid, id);
+        grid_add_obj(w, new_grid, id, x, y, is_maker, is_watcher);
 
         *p_idx = idx;
     }

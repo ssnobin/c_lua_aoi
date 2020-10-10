@@ -38,6 +38,7 @@ typedef struct aoi_world {
     Grid** grids;
     HashTable* where_is;//id在哪个格子 实时的
     HashTable* pre_where_is;
+    HashTable* watcher_grids;
 }World;
 
 World* aoi_create_world(int row, int col);
