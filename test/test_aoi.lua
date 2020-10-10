@@ -172,7 +172,7 @@ local function bench_test_my_lua_aoi(times, n)
     local b = os.clock()
     local cnt = 0
     for j =1,times do
-        for i = 1,100 do
+        for i = 1,10000 do
             local x = math.random(1,9)
             local y = math.random(1,9)
             local id = math.random(1,n)
@@ -264,7 +264,7 @@ end
 
 --同样的代码c更快
 bench_test_zixun(100,10000)
---bench_test_my_lua_aoi(100,10000)
+bench_test_my_lua_aoi(100,10000)
 bench_test_my_c_aoi(100,10000) --todo 优化点1， c的取周围9个格子 优化点2 返回的aoi_events少一层table结构 
 --todo zixun的get_nearby_grids是有bug的。。
 --少一层的aoi_events结果，速度就上去了=v=
