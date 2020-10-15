@@ -1,3 +1,6 @@
 [submodule "test/zixun"]
 	path = test/zixun
 	url = https://github.com/lvzixun/aoi.git
+[submodule "test/cloudwu"]
+	path = test/cloudwu
+	url = https://github.com/cloudwu/aoi.git
